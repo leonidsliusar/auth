@@ -1,0 +1,31 @@
+version: '3.0'
+
+
+services:
+  app:
+    build:
+      dockerfile: Dockerfile
+    container_name: register
+    restart: always
+    depends_on:
+      - postgres
+    ports:
+      - '8000:8000'
+    environment:
+      - DEBUG=1
+      - DB_PORT=5455
+      - DB_HOST=postgres
+      - DB_LOGIN=postgres
+      - DB_PASSWORD=postgres
+      - DB_NAME=reg
+
+  postgres:
+    image: postgres:15.3-alpine
+    container_name: register_db
+    restart: always
+    ports:
+      - '5455:5432'
+    environment:
+      POSTGRES_USER: 'postgres'
+      POSTGRES_PASSWORD: 'postgres'
+      POSTGRES_DB: 'reg'
