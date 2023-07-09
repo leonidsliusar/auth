@@ -13,11 +13,13 @@ services:
       - '8000:8000'
     environment:
       - DEBUG=1
-      - DB_PORT=5455
-      - DB_HOST=postgres
       - DB_LOGIN=postgres
       - DB_PASSWORD=postgres
       - DB_NAME=reg
+      - DB_HOST=postgres
+      - DB_PORT=5432
+    networks:
+      - mynetwork
 
   postgres:
     image: postgres:15.3-alpine
@@ -25,7 +27,13 @@ services:
     restart: always
     ports:
       - '5455:5432'
+    networks:
+      - mynetwork
     environment:
       POSTGRES_USER: 'postgres'
       POSTGRES_PASSWORD: 'postgres'
       POSTGRES_DB: 'reg'
+
+
+networks:
+  mynetwork:

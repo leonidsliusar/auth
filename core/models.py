@@ -1,7 +1,5 @@
 import re
-from uuid import UUID
-
-from pydantic import BaseModel, Field, EmailStr, field_validator
+from pydantic import BaseModel, Field, EmailStr, field_validator, UUID4
 
 
 class UserInput(BaseModel):
@@ -21,6 +19,6 @@ class UserInput(BaseModel):
 
 
 class UserOutput(BaseModel):
-    id: UUID
+    id: UUID4
     email: EmailStr
     is_active: bool
