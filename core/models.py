@@ -1,4 +1,5 @@
 import re
+from typing import Optional
 from pydantic import BaseModel, Field, EmailStr, field_validator, UUID4
 
 
@@ -21,4 +22,12 @@ class UserInput(BaseModel):
 class UserOutput(BaseModel):
     id: UUID4
     email: EmailStr
-    is_active: bool
+    bot_type: Optional[str] = None
+    password: Optional[str] = None
+    verify_code: Optional[str] = None
+    in_changes: Optional[bool] = False
+
+
+class AuthUser(BaseModel):
+    email: EmailStr
+    password: str

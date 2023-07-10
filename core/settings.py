@@ -10,6 +10,17 @@ class Settings(BaseSettings):
     DB_PORT: str
     DB: Optional[str] = None
 
+    EMAIL_HOST: str
+    EMAIL_PORT: str
+    EMAIL_USERNAME: str
+    EMAIL_PASSWORD: str
+    EMAIL_FROM: str
+
+    REFRESH_TOKEN_EXPIRES_IN: int
+    ACCESS_TOKEN_EXPIRES_IN: int
+    ALGORITHM: str
+    SECRET_KEY: str
+
     def __init__(self):
         super().__init__()
         self.set_db()

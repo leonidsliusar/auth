@@ -1,11 +1,10 @@
 from abc import ABC, abstractmethod
 from typing import Optional
 
-from sqlalchemy import insert, select, update
+from sqlalchemy import insert, select, update, RowMapping
 from sqlalchemy.ext.asyncio import AsyncSession
 from core.db.schema import User
-from core.models import UserInput, UserOutput
-from utils.hasher import hash_pass
+from utils.regex_checker import RegexIn
 
 
 class BaseManager(ABC):
@@ -19,35 +18,50 @@ class BaseManager(ABC):
         pass
 
     @abstractmethod
-    async def get(self, *args, **kwargs):
+    async def retrieve(self, *args, **kwargs):
+        pass
+
+    @abstractmethod
+    async def update(self, *args, **kwargs):
         pass
 
 
-class UserManager(BaseManager):
+class StorageManager(BaseManager):
 
-    async def create(self, user: UserInput) -> UserOutput:
-        user_to_inset = user.model_copy()
-        user_to_inset.password = hash_pass(user.password)
-        query = insert(User).values(user_to_inset.model_dump()).returning(User.id, User.email, User.is_active)
+    async def create(self, user_data: dict) -> dict:
+        query = insert(User).values(user_data).returning(User.id, User.email, User.bot_type)
         returning_result = await self.db.execute(query)
-        user_data = returning_result.mappings().fetchone()
-        return UserOutput(**user_data)
+        user_data = returning_result.fetchone()._asdict()
+        return user_data
 
-    async def get(self, user_id: str) -> Optional[UserOutput]:
-        query = select(User.id, User.email, User.is_active).where(User.id == user_id)
+    async def retrieve(self, user_param: str) -> Optional[dict]:
+        match RegexIn(user_param):
+            case r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b':
+                query = select(User).where(User.email == user_param)
+            case _:
+                query = select(User).where(User.id == user_param)
         returning_result = await self.db.execute(query)
-        user_data = returning_result.mappings().fetchone()
+        user_data = returning_result.scalar()
         if user_data:
-            user = UserOutput(**user_data)
-            return user
+            user_data = user_data.__dict__
+            user_data.pop('_sa_instance_state')
+            return user_data
 
-    async def update_password(self, user: UserInput) -> Optional[UserOutput]:
-        new_password = user.password
-        new_password_hashed = hash_pass(new_password)
-        query = update(User).where(User.email == user.email).values(password=new_password_hashed).returning(
-            User.id, User.email, User.is_active)
+    async def update(self, user_email: str, user_password: Optional[str] = None,
+                     verify_code: Optional[str] = None) -> Optional[dict]:
+        if user_password:
+            query = update(User).where(User.email == user_email).values(
+                password=user_password, in_changes=False).returning(User.id, User.email, User.bot_type)
+        else:
+            query = update(User).where(User.email == user_email).values(
+                verify_code=verify_code, in_changes=True).returning(User.id, User.email)
         returning_result = await self.db.execute(query)
-        user_data = returning_result.mappings().fetchone()
-        if user_data:
-            user = UserOutput(**user_data)
-            return user
+        try:
+            user_data = returning_result.fetchone()._asdict()
+        except AttributeError:
+            user_data = None
+        return user_data
+
+    async def unset_verify_status(self, email: str) -> None:
+        query = update(User).where(User.email == email).values(verify_code=None)
+        await self.db.execute(query)
